@@ -6,6 +6,7 @@
 #include<nlohmann/json.hpp>
 
 #include <storage.hpp>
+#include <cacheManager.hpp>
 
 class Database {
 
@@ -21,7 +22,8 @@ public:
 private:
 	std::string m_filename;
 	long long m_counter;
-	std::map<std::string, nlohmann::json> m_documentCache;
+	//std::map<std::string, nlohmann::json> m_documentCache;
+	CacheManager m_cacheManager;
 	Storage m_storage;
 
 	long long generateId();
@@ -30,7 +32,7 @@ private:
 	bool loadCache();
 
 	bool loadCounter();
-	bool saveCounter();
+	bool saveCounter() const;
 
 
 };

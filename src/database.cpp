@@ -9,11 +9,16 @@ bool Database::createDocument(nlohmann::json& document)
 {
 	document["id"] = generateId();
 	bool result = m_storage.writeJObject(document);
+	m_cacheManager.put(document["id"], document);
 	return result;
 }
 
 nlohmann::json Database::readDocument(const long long& id)
 {
+	auto item = m_cacheManager.get(id);
+	if (item.has_value())
+		return item.value();
+
 	auto iterator = m_storage.getIterator();
 
 	while (iterator.hasNext()) {
@@ -29,12 +34,17 @@ nlohmann::json Database::readDocument(const long long& id)
 
 bool Database::updateDocument(const long long& id, nlohmann::json& document)
 {
-	return false;
+	document["id"] = id;
+	m_storage.updateJObject(id, document);
+	m_cacheManager.put(id, document);
+	return true;
 }
 
 bool Database::deleteDocument(const long long& id)
 {
-	return false;
+	m_storage.deleteJObject(id);
+	m_cacheManager.remove(id);
+	return true;
 }
 
 long long Database::generateId()
@@ -63,7 +73,7 @@ bool Database::loadCounter()
 	return true;
 }
 
-bool Database::saveCounter()
+bool Database::saveCounter() const
 {
 	std::ofstream file = std::ofstream(m_filename + ".txt");
 	file << m_counter;
