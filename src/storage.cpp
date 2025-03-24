@@ -17,15 +17,11 @@ json Storage::getJObject(uint64_t id)
 	if (!m_index.has(id))
 		return {};
 
-	uint32_t offset = m_index.getOffset(id);
-	m_storageStream.seekg(offset);
+	auto entry = m_index.getEntry(id);
+	m_storageStream.seekg(entry.offset);
 
-	uint32_t size = 0;
-	m_storageStream.read(reinterpret_cast<char*>(&size), sizeof(size));
-
-	std::string line(size, '\0');
-	m_storageStream.read(&line[0], size);
-
+	std::string line(entry.size, '\0');
+	m_storageStream.read(&line[0], entry.size);
 	nlohmann::json jObject = nlohmann::json::parse(line);
 
 	return jObject;
@@ -52,9 +48,10 @@ bool Storage::writeJObject(const nlohmann::json& jObject)
 		m_storageStream.seekp(0, std::ios::end);
 	}
 
-	m_index.setOffset(id, m_storageStream.tellg());
+	auto entry = Index::IndexEntry(m_storageStream.tellg(), size);
+	m_index.setEntry(id, entry);
 
-	m_storageStream.write(reinterpret_cast<char*>(&size), sizeof(size));
+	//m_storageStream.write(reinterpret_cast<char*>(&size), sizeof(size));
 	m_storageStream.write(dump.data(), dump.length());	
 
 	return true;
@@ -62,95 +59,11 @@ bool Storage::writeJObject(const nlohmann::json& jObject)
 
 bool Storage::updateJObject(uint64_t id, const nlohmann::json& jObject)
 {
-	std::ofstream fileTemp = std::ofstream(m_filename + ".temp");
-	JsonLineIterator iterator(m_filename);
-	while (iterator.hasNext()) {
-		nlohmann::json currentJObject = iterator.next();
-		if (currentJObject["id"].get<uint64_t>() == id) {
-			fileTemp << jObject.dump() << std::endl;
-		}
-		else {
-			fileTemp << currentJObject.dump() << std::endl;
-		}
-	}
-	iterator.close();
-	fileTemp.close();
-
-	std::filesystem::remove(m_filename);
-	std::filesystem::rename(m_filename + ".temp", m_filename);
-
 	return true;
 }
 
 bool Storage::deleteJObject(uint64_t id)
 {
-	uint32_t offset = m_index.getOffset(id);
-	m_storageStream.seekg(offset);
-
-	uint32_t size = 0;
-	m_storageStream.read(reinterpret_cast<char*>(&size), sizeof(size));
-
-	m_index.removeOffset(id, size);
-
+	m_index.removeEntry(id);
 	return true;
-	/*std::ofstream fileTemp = std::ofstream(m_filename + ".temp");
-	JsonLineIterator iterator(m_filename);
-	while (iterator.hasNext()) {
-		nlohmann::json currentJObject = iterator.next();
-		if (currentJObject["id"].get<uint64_t>() != id) {
-			fileTemp << currentJObject.dump() << std::endl;
-		}
-	}
-
-	iterator.close();
-	fileTemp.close();
-
-	std::filesystem::remove(m_filename);
-	std::filesystem::rename(m_filename + ".temp", m_filename);
-
-	return true;*/
-}
-
-Storage::JsonLineIterator Storage::getIterator()
-{
-	return Storage::JsonLineIterator(m_filename);
-}
-
-Storage::JsonLineIterator::JsonLineIterator(const std::string& filename)
-	: m_filename(filename), m_file(filename)
-{
-	advance();
-}
-
-Storage::JsonLineIterator::~JsonLineIterator()
-{
-	close();
-}
-
-bool Storage::JsonLineIterator::hasNext() const
-{
-	return m_hasNext;
-}
-
-nlohmann::json Storage::JsonLineIterator::next()
-{
-	if (!m_hasNext)
-		return {};
-	
-	nlohmann::json line = nlohmann::json::parse(m_currentLine);
-	advance();
-	return line;
-}
-
-void Storage::JsonLineIterator::close()
-{
-	m_file.close();
-}
-
-void Storage::JsonLineIterator::advance()
-{
-	if (std::getline(m_file, m_currentLine)) 
-		m_hasNext = true;
-	else
-		m_hasNext = false;
 }

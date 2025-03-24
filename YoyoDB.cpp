@@ -17,10 +17,10 @@ int main()
 	nlohmann::json o3 = R"( {"war": "yoyo3"} )"_json;
 	nlohmann::json o4 = R"( {"war": "yoyo4"} )"_json;
 
-	database.createDocument(o1);
-	database.createDocument(o2);
-	database.createDocument(o3);
-	database.createDocument(o4);
+	//database.createDocument(o1);
+	//database.createDocument(o2);
+	//database.createDocument(o3);
+	//database.createDocument(o4);
 
 	// Read Test
 	std::cout << database.readDocument(1)["war"] << '\n';
@@ -30,7 +30,7 @@ int main()
 	//database.updateDocument(2, new_item);
 
 	// Delete Test
-	database.deleteDocument(3);
-	std::cout << database.readDocument(3);
+	//database.deleteDocument(3);
+	//std::cout << database.readDocument(3);
 
 }
