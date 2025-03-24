@@ -9,12 +9,15 @@
 
 #include <index.hpp>
 
+using json = nlohmann::json;
+
 class Storage
 {
 public:
 	Storage(const std::string& filename);
-	
-	class JsonLineIterator {
+	~Storage();
+
+	class JsonLineIterator { // will be removed
 	public:
 		JsonLineIterator(const std::string& filename);
 		~JsonLineIterator();
@@ -32,15 +35,17 @@ public:
 		
 	};
 
+	json getJObject(uint64_t id);
 	bool writeJObject(const nlohmann::json& jObject);
 	bool updateJObject(uint64_t id, const nlohmann::json& jObject);
 	bool deleteJObject(uint64_t id);
 
-	JsonLineIterator getIterator();
+	JsonLineIterator getIterator(); // to be removed
 	//std::vector<nlohmann::json> readAll();
 
 private:
 	std::string m_filename;
+	std::fstream m_storageStream;
 	Index m_index;
 
 };

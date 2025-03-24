@@ -1,7 +1,8 @@
 #include "database.hpp"
 
 Database::Database(const std::string& filename)
-	: m_filename(filename), m_storage(filename) {
+	: m_filename(filename + ".txt"), m_storage(filename) {
+	std::ofstream(m_filename, std::ios::app | std::ios::binary).close();
 	loadCounter();
 }
 
@@ -19,17 +20,13 @@ nlohmann::json Database::readDocument(uint64_t id)
 	if (item.has_value())
 		return item.value();
 
-	auto iterator = m_storage.getIterator();
 
-	while (iterator.hasNext()) {
-		nlohmann::json jObject = iterator.next();
-		if (not jObject.count("id"))
-			continue;
-		if (jObject["id"].get<uint64_t>() == id)
-			return jObject;
-	}
-	
-	return {};
+	auto jObject = m_storage.getJObject(id);
+	if (jObject.contains("id"))
+		m_cacheManager.put(jObject["id"], jObject);
+
+	return jObject;
+
 }
 
 bool Database::updateDocument(uint64_t id, nlohmann::json& document)
@@ -66,7 +63,7 @@ bool Database::loadCache()
 
 bool Database::loadCounter()
 {
-	std::ifstream file = std::ifstream(m_filename + ".txt");
+	std::ifstream file = std::ifstream(m_filename);
 	m_counter = 0;
 	file >> m_counter;
 	file.close();
@@ -75,7 +72,7 @@ bool Database::loadCounter()
 
 bool Database::saveCounter() const
 {
-	std::ofstream file = std::ofstream(m_filename + ".txt");
+	std::ofstream file = std::ofstream(m_filename);
 	file << m_counter;
 	file.close();
 	return true;

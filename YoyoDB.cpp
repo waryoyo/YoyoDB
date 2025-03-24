@@ -9,7 +9,7 @@ using namespace nlohmann::literals;
 
 int main()
 {
-	Database database = Database("yoyo.jsonl");
+	Database database = Database("yoyo");
 
 	// Create Test
 	nlohmann::json o1 = R"( {"war": "yoyo"} )"_json;
@@ -25,9 +25,9 @@ int main()
 	// Read Test
 	std::cout << database.readDocument(1)["war"] << '\n';
 
-	// Update Test
-	nlohmann::json new_item = R"( {"mega": "wowo"} )"_json;
-	database.updateDocument(2, new_item);
+	//// Update Test
+	//nlohmann::json new_item = R"( {"mega": "wowo"} )"_json;
+	//database.updateDocument(2, new_item);
 
 	// Delete Test
 	database.deleteDocument(3);
