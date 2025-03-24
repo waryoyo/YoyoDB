@@ -1,26 +1,30 @@
 #include "storage.hpp"
 
 Storage::Storage(const std::string& filename)
-	: m_filename(filename) {
+	: m_filename(filename), m_index(filename) {
 
 }
 
 bool Storage::writeJObject(const nlohmann::json& jObject)
 {
-	std::ofstream file = std::ofstream(m_filename, std::ios::app);
-	file << jObject.dump() << std::endl;
+	std::string dump = jObject.dump();
+	uint32_t size = static_cast<uint32_t>(dump.length());
+	std::ofstream file = std::ofstream(m_filename, std::ios::app | std::ios::binary);
+
+	file.write(reinterpret_cast<char*>(&size), sizeof(size));
+	file.write(dump.data(), dump.length());
 	file.close();
 		
 	return true;
 }
 
-bool Storage::updateJObject(const long long& id, const nlohmann::json& jObject)
+bool Storage::updateJObject(uint64_t id, const nlohmann::json& jObject)
 {
 	std::ofstream fileTemp = std::ofstream(m_filename + ".temp");
 	JsonLineIterator iterator(m_filename);
 	while (iterator.hasNext()) {
 		nlohmann::json currentJObject = iterator.next();
-		if (currentJObject["id"].get<long long>() == id) {
+		if (currentJObject["id"].get<uint64_t>() == id) {
 			fileTemp << jObject.dump() << std::endl;
 		}
 		else {
@@ -36,13 +40,13 @@ bool Storage::updateJObject(const long long& id, const nlohmann::json& jObject)
 	return true;
 }
 
-bool Storage::deleteJObject(const long long& id)
+bool Storage::deleteJObject(uint64_t id)
 {
 	std::ofstream fileTemp = std::ofstream(m_filename + ".temp");
 	JsonLineIterator iterator(m_filename);
 	while (iterator.hasNext()) {
 		nlohmann::json currentJObject = iterator.next();
-		if (currentJObject["id"].get<long long>() != id) {
+		if (currentJObject["id"].get<uint64_t>() != id) {
 			fileTemp << currentJObject.dump() << std::endl;
 		}
 	}
@@ -89,9 +93,7 @@ nlohmann::json Storage::JsonLineIterator::next()
 
 void Storage::JsonLineIterator::close()
 {
-	if (m_file.is_open()) {
-		m_file.close();
-	}
+	m_file.close();
 }
 
 void Storage::JsonLineIterator::advance()

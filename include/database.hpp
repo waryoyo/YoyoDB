@@ -3,7 +3,7 @@
 #include <string>
 #include <map>
 
-#include<nlohmann/json.hpp>
+#include <nlohmann/json.hpp>
 
 #include <storage.hpp>
 #include <cacheManager.hpp>
@@ -14,19 +14,19 @@ public:
 	Database(const std::string& filename);
 
 	bool createDocument(nlohmann::json& document);
-	nlohmann::json readDocument(const long long& id);
-	bool updateDocument(const long long& id, nlohmann::json& document);
-	bool deleteDocument(const long long& id);
+	nlohmann::json readDocument(uint64_t id);
+	bool updateDocument(uint64_t id, nlohmann::json& document);
+	bool deleteDocument(uint64_t id);
 
 
 private:
 	std::string m_filename;
-	long long m_counter;
+	uint64_t m_counter;
 	//std::map<std::string, nlohmann::json> m_documentCache;
 	CacheManager m_cacheManager;
 	Storage m_storage;
 
-	long long generateId();
+	uint64_t generateId();
 
 	bool saveCache();
 	bool loadCache();

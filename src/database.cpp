@@ -13,7 +13,7 @@ bool Database::createDocument(nlohmann::json& document)
 	return result;
 }
 
-nlohmann::json Database::readDocument(const long long& id)
+nlohmann::json Database::readDocument(uint64_t id)
 {
 	auto item = m_cacheManager.get(id);
 	if (item.has_value())
@@ -25,14 +25,14 @@ nlohmann::json Database::readDocument(const long long& id)
 		nlohmann::json jObject = iterator.next();
 		if (not jObject.count("id"))
 			continue;
-		if (jObject["id"].get<long long>() == id)
+		if (jObject["id"].get<uint64_t>() == id)
 			return jObject;
 	}
 	
 	return {};
 }
 
-bool Database::updateDocument(const long long& id, nlohmann::json& document)
+bool Database::updateDocument(uint64_t id, nlohmann::json& document)
 {
 	document["id"] = id;
 	m_storage.updateJObject(id, document);
@@ -40,14 +40,14 @@ bool Database::updateDocument(const long long& id, nlohmann::json& document)
 	return true;
 }
 
-bool Database::deleteDocument(const long long& id)
+bool Database::deleteDocument(uint64_t id)
 {
 	m_storage.deleteJObject(id);
 	m_cacheManager.remove(id);
 	return true;
 }
 
-long long Database::generateId()
+uint64_t Database::generateId()
 {
 	m_counter++;
 	saveCounter();

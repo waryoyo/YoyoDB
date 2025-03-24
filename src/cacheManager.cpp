@@ -9,7 +9,7 @@ CacheManager::CacheManager(size_t capacity)
 	: m_capacity(capacity) {
 }
 
-std::optional<json> CacheManager::get(const long long& key)
+std::optional<json> CacheManager::get(uint64_t key)
 {
 	if (m_map.count(key) != 0) {
 		m_accessOrder.erase(m_map[key].first);
@@ -21,7 +21,7 @@ std::optional<json> CacheManager::get(const long long& key)
 	return std::nullopt;
 }
 
-void CacheManager::put(const long long& key, json document)
+void CacheManager::put(uint64_t key, json document)
 {	
 	if (m_map.count(key) != 0) {
 		m_accessOrder.erase(m_map[key].first);
@@ -38,7 +38,7 @@ void CacheManager::put(const long long& key, json document)
 
 }
 
-void CacheManager::remove(const long long& key)
+void CacheManager::remove(uint64_t key)
 {
 	if (m_map.count(key) != 0) {
 		m_accessOrder.erase(m_map[key].first);

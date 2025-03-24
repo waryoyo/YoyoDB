@@ -7,6 +7,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <index.hpp>
+
 class Storage
 {
 public:
@@ -31,13 +33,14 @@ public:
 	};
 
 	bool writeJObject(const nlohmann::json& jObject);
-	bool updateJObject(const long long &id, const nlohmann::json& jObject);
-	bool deleteJObject(const long long& id);
+	bool updateJObject(uint64_t id, const nlohmann::json& jObject);
+	bool deleteJObject(uint64_t id);
 
 	JsonLineIterator getIterator();
 	//std::vector<nlohmann::json> readAll();
 
 private:
 	std::string m_filename;
+	Index m_index;
 
 };

@@ -12,13 +12,13 @@ public:
 	CacheManager();
 	CacheManager(size_t capacity);
 
-	std::optional<json> get(const long long& key);
-	void put(const long long& key, json document);
-	void remove(const long long& key);
+	std::optional<json> get(uint64_t key);
+	void put(uint64_t key, json document);
+	void remove(uint64_t key);
 	void clear();
 
 private:
-	std::unordered_map<long long, std::pair<std::list<long long>::iterator, json>> m_map;
-	std::list<long long> m_accessOrder;
+	std::unordered_map<uint64_t, std::pair<std::list<uint64_t>::iterator, json>> m_map;
+	std::list<uint64_t> m_accessOrder;
 	size_t m_capacity;
 };
