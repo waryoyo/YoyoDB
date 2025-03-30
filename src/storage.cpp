@@ -12,6 +12,11 @@ Storage::~Storage() {
 	m_storageStream.close();
 }
 
+std::vector<uint64_t> Storage::getAllJObjectIds()
+{
+	return m_index.listAllIDs();
+}
+
 json Storage::getJObject(uint64_t id)
 {
 	if (!m_index.has(id))
@@ -59,6 +64,9 @@ bool Storage::writeJObject(const nlohmann::json& jObject)
 
 bool Storage::updateJObject(uint64_t id, const nlohmann::json& jObject)
 {
+	// reimplement update later to be more better
+	deleteJObject(id);
+	writeJObject(jObject);
 	return true;
 }
 

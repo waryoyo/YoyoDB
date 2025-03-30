@@ -29,6 +29,32 @@ nlohmann::json Database::readDocument(uint64_t id)
 
 }
 
+std::vector<nlohmann::json> Database::readAllDocuments()
+{
+
+	auto idsList = m_storage.getAllJObjectIds();
+	std::vector<nlohmann::json> finalResult;
+	finalResult.reserve(idsList.size());
+
+	for (const auto& id : idsList) {
+		auto item = m_cacheManager.get(id);
+		if (item.has_value()) {
+			finalResult.push_back(item.value());
+			continue;
+		}
+
+		auto jObject = m_storage.getJObject(id);
+		if (jObject.contains("id")) {
+			finalResult.push_back(jObject);
+			m_cacheManager.put(jObject["id"], jObject);
+		}
+
+	}
+
+	return finalResult;
+}
+
+
 bool Database::updateDocument(uint64_t id, nlohmann::json& document)
 {
 	document["id"] = id;

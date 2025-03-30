@@ -21,10 +21,21 @@ bool Index::has(uint64_t id)
 	return m_indexMap.contains(id);
 }
 
+std::vector<uint64_t> Index::listAllIDs()
+{
+	std::vector<uint64_t> documentIDs;
+	documentIDs.reserve(m_indexMap.size());
+
+	for (auto it = m_indexMap.begin(); it != m_indexMap.end(); ++it)
+		documentIDs.push_back(it->first);
+	
+	return documentIDs;
+}
+
 void Index::setEntry(uint64_t id, IndexEntry& entry)
 {
 	if (m_indexMap.count(id) != 0) {
-		m_indexStream.seekp(sizeof(uint32_t) + m_indexLocationsMap[id] * (sizeof(uint64_t) + sizeof(uint32_t)) + sizeof(uint64_t));
+		m_indexStream.seekp(m_indexLocationsMap[id] * (sizeof(uint64_t) + sizeof(uint32_t)) + sizeof(uint64_t));
 		m_indexStream.write(reinterpret_cast<char*>(&entry.offset), sizeof(entry.offset));
 		m_indexStream.write(reinterpret_cast<char*>(&entry.size), sizeof(entry.size));
 	}
@@ -41,7 +52,7 @@ void Index::setEntry(uint64_t id, IndexEntry& entry)
 		m_indexStream.write(reinterpret_cast<char*>(&entry.offset), sizeof(entry.offset));
 		m_indexStream.write(reinterpret_cast<char*>(&entry.size), sizeof(entry.size));
 
-		m_indexLocationsMap[id] = length - sizeof(uint32_t);
+		m_indexLocationsMap[id] = length;
 	}
 	else {
 		uint32_t front = m_freeOffsets.back();
@@ -49,10 +60,7 @@ void Index::setEntry(uint64_t id, IndexEntry& entry)
 
 		uint32_t freeOffsetsSize = m_freeOffsets.size();
 
-		m_indexStream.seekp(0);
-		m_indexStream.write(reinterpret_cast<char*>(&freeOffsetsSize), sizeof(freeOffsetsSize));
-
-		m_indexStream.seekp(sizeof(uint32_t) + front * (sizeof(uint64_t) + sizeof(uint32_t)) + sizeof(uint32_t));
+		m_indexStream.seekp(front * (sizeof(uint64_t) + sizeof(uint32_t)) + sizeof(uint32_t));
 		m_indexStream.write(reinterpret_cast<char*>(&id), sizeof(id));
 		m_indexStream.write(reinterpret_cast<char*>(&entry.offset), sizeof(entry.offset));
 		m_indexStream.write(reinterpret_cast<char*>(&entry.size), sizeof(entry.size));
@@ -71,19 +79,15 @@ void Index::removeEntry(uint64_t id)
 
 	uint64_t zero = 0;
 
-	m_indexStream.seekp(sizeof(uint32_t) + m_indexLocationsMap[id] * (sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint32_t)));
+	m_indexStream.seekp(m_indexLocationsMap[id] * (sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint32_t)));
 	m_indexStream.write(reinterpret_cast<char*>(&zero), sizeof(uint64_t));
 	m_indexStream.write(reinterpret_cast<char*>(&zero), sizeof(uint32_t));
 	m_indexStream.write(reinterpret_cast<char*>(&zero), sizeof(uint32_t));
 
-	m_emptyGaps[m_indexMap[id].size] = m_indexMap[id].offset;
+	m_emptyGaps.insert({ m_indexMap[id].size, m_indexMap[id].offset });
 	m_indexMap.erase(id);
 	m_freeOffsets.push_back(m_indexLocationsMap[id]);
 	m_indexLocationsMap.erase(id);
-
-	m_indexStream.seekp(0);
-	uint32_t freeOffsetSize = static_cast<uint32_t>(m_freeOffsets.size());
-	m_indexStream.write(reinterpret_cast<char*>(&freeOffsetSize), sizeof(freeOffsetSize));
 
 }
 
@@ -97,13 +101,13 @@ Index::IndexEntry Index::getEntry(uint64_t id)
 
 std::optional<std::pair<uint32_t, uint32_t>> Index::getBestFitGap(uint32_t size)
 {
-	auto it = std::find_if(m_emptyGaps.begin(), m_emptyGaps.end(),
-		[&](const auto& gap) { return gap.second >= size; });
-	
-	if (it != m_emptyGaps.end())
-		return std::pair(it->first, it->second);
+	auto lower = m_emptyGaps.lower_bound(size);
 
-	return std::nullopt;
+	if (lower == m_emptyGaps.end()) {
+		return std::nullopt;
+	}
+
+	return std::pair(lower->first, lower->second);
 }
 
 void Index::eraseGap(uint32_t size)
@@ -114,7 +118,7 @@ void Index::eraseGap(uint32_t size)
 
 void Index::updateGap(uint32_t size, uint32_t offset)
 {
-	m_emptyGaps[size] = offset;
+	m_emptyGaps.insert({ size, offset });
 }
 
 void Index::loadIndex() {
@@ -123,18 +127,14 @@ void Index::loadIndex() {
 	int length = m_indexStream.tellg();
 	if (length <= 0) {
 		m_indexStream.clear();
-		createIndex();
+		//createIndex();
 		return;
 	}
 
 	m_indexStream.seekg(0);
-	uint32_t freeOffsetsCount = 0;
-	m_indexStream.read(reinterpret_cast<char*>(&freeOffsetsCount), sizeof(uint32_t));
-	m_freeOffsets.reserve(std::max(freeOffsetsCount, 1u));
 
-	std::vector<uint32_t> usedBlocks;
-	usedBlocks.reserve(floor(std::max(length, 2)/2));
-	m_indexStream.seekg(sizeof(uint32_t));
+	std::vector<IndexEntry> usedBlocks;
+	usedBlocks.reserve(floor(std::max(length/8, 2)/2));
 
 	uint32_t i = 0;
 	while (true) {
@@ -147,12 +147,12 @@ void Index::loadIndex() {
 
 		if (m_indexStream.eof() || m_indexStream.fail()) break;
 
-		if (id == 0 && entry.offset == 0 && m_freeOffsets.size() <= freeOffsetsCount) {
+		if (id == 0 && entry.offset == 0) {
 			m_freeOffsets.push_back(i);
 			continue;
 		}
 
-		usedBlocks.push_back(entry.offset);
+		usedBlocks.push_back(entry);
 
 		m_indexMap[id] = entry;
 		m_indexLocationsMap[id] = i;
@@ -162,21 +162,15 @@ void Index::loadIndex() {
 
 	m_indexStream.clear();
 
-	sort(usedBlocks.begin(), usedBlocks.end());
+	sort(usedBlocks.begin(), usedBlocks.end(), [](const IndexEntry& first, const IndexEntry& second) {
+			return first.offset < second.offset;
+	});
 	for (size_t i = 1; i < usedBlocks.size(); i++) {
-		uint32_t distance = usedBlocks[i] - usedBlocks[i - 1];
+		uint32_t distance = usedBlocks[i - 1].offset + usedBlocks[i-1].size - usedBlocks[i].offset;
 		if (distance > 1)
-			m_emptyGaps[distance] = usedBlocks[i - 1];
+ 			m_emptyGaps.insert({ distance, usedBlocks[i - 1].offset });
 	}
 
-}
-
-void Index::createIndex()
-{
-	m_indexStream.seekp(0, std::ios::end);
-	uint32_t zeroSize = 0;
-	m_indexStream.write(reinterpret_cast<char*>(&zeroSize), sizeof(zeroSize));
-	//m_indexStream.flush();
 }
 
 

@@ -11,6 +11,8 @@ int main()
 {
 	Database database = Database("yoyo");
 
+	
+
 	// Create Test
 	nlohmann::json o1 = R"( {"war": "yoyo"} )"_json;
 	nlohmann::json o2 = R"( {"war": "yoyo2"} )"_json;
@@ -22,14 +24,22 @@ int main()
 	//database.createDocument(o3);
 	//database.createDocument(o4);
 
-	// Read Test
-	std::cout << database.readDocument(1)["war"] << '\n';
+	auto items = database.readAllDocuments();
 
-	//// Update Test
-	//nlohmann::json new_item = R"( {"mega": "wowo"} )"_json;
-	//database.updateDocument(2, new_item);
+	for (const auto& item : items) {
+		std::cout << item.dump() << '\n';
+	}
 
-	// Delete Test
+	//// Read Test
+	////std::cout << database.readDocument(1)["war"] << '\n';
+
+	////// Update Test
+	nlohmann::json new_item = R"( {"mega": "wowo"} )"_json;
+	database.updateDocument(2, new_item);
+	std::cout << database.readDocument(2)["mega"] << '\n';
+
+
+	//// Delete Test
 	//database.deleteDocument(3);
 	//std::cout << database.readDocument(3);
 

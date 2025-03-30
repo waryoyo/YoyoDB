@@ -2,6 +2,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -15,6 +16,9 @@ public:
 
 	bool createDocument(nlohmann::json& document);
 	nlohmann::json readDocument(uint64_t id);
+	std::vector<nlohmann::json> readAllDocuments();
+
+
 	bool updateDocument(uint64_t id, nlohmann::json& document);
 	bool deleteDocument(uint64_t id);
 

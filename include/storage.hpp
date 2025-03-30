@@ -17,6 +17,8 @@ public:
 	Storage(const std::string& filename);
 	~Storage();
 
+	std::vector<uint64_t> getAllJObjectIds();
+
 	json getJObject(uint64_t id);
 	bool writeJObject(const nlohmann::json& jObject);
 	bool updateJObject(uint64_t id, const nlohmann::json& jObject);
