@@ -53,12 +53,10 @@ bool Storage::writeJObject(const nlohmann::json& jObject)
 		m_storageStream.seekp(0, std::ios::end);
 	}
 
-	auto entry = Index::IndexEntry(m_storageStream.tellg(), size);
+	auto entry = IndexEntry(m_storageStream.tellg(), size);
 	m_index.setEntry(id, entry);
 
-	//m_storageStream.write(reinterpret_cast<char*>(&size), sizeof(size));
 	m_storageStream.write(dump.data(), dump.length());	
-
 	return true;
 }
 
@@ -73,5 +71,11 @@ bool Storage::updateJObject(uint64_t id, const nlohmann::json& jObject)
 bool Storage::deleteJObject(uint64_t id)
 {
 	m_index.removeEntry(id);
+	return true;
+}
+
+bool Storage::createFIndex(const std::string& field, bool unique)
+{
+	m_index.addFieldIndex(field, unique);
 	return true;
 }

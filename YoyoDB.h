@@ -5,6 +5,8 @@
 
 #include <iostream>
 #include <database.hpp>
+#include <query/queryExecutor.hpp>
+
 #include <nlohmann/json.hpp>
 
 

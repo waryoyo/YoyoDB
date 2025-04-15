@@ -13,7 +13,7 @@ public:
 	CacheManager(size_t capacity);
 
 	std::optional<json> get(uint64_t key);
-	void put(uint64_t key, json document);
+	void put(uint64_t key, const json& document);
 	void remove(uint64_t key);
 	void clear();
 

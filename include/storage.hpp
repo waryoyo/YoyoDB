@@ -7,7 +7,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include <index.hpp>
+#include <storageIndex.hpp>
 
 using json = nlohmann::json;
 
@@ -24,11 +24,13 @@ public:
 	bool updateJObject(uint64_t id, const nlohmann::json& jObject);
 	bool deleteJObject(uint64_t id);
 
+	bool createFIndex(const std::string& field, bool unique);
+
 	//std::vector<nlohmann::json> readAll();
 
 private:
 	std::string m_filename;
 	std::fstream m_storageStream;
-	Index m_index;
+	StorageIndex m_index;
 
 };

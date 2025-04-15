@@ -6,6 +6,11 @@ Database::Database(const std::string& filename)
 	loadCounter();
 }
 
+std::vector<uint64_t> Database::getAllIds()
+{
+	return m_storage.getAllJObjectIds();
+}
+
 bool Database::createDocument(nlohmann::json& document)
 {
 	document["id"] = generateId();
@@ -70,6 +75,16 @@ bool Database::deleteDocument(uint64_t id)
 	return true;
 }
 
+bool Database::createFieldIndex(const std::string& fieldName, bool unique)
+{
+	return m_storage.createFIndex(fieldName, unique);
+}
+
+bool Database::hasIndex(const std::string fieldName)
+{
+	return false;
+}
+
 uint64_t Database::generateId()
 {
 	m_counter++;
@@ -77,12 +92,7 @@ uint64_t Database::generateId()
 	return m_counter;
 }
 
-bool Database::saveCache()
-{
-	return false;
-}
-
-bool Database::loadCache()
+bool Database::readFromIndex(const std::string& fieldName, const nlohmann::json& value)
 {
 	return false;
 }

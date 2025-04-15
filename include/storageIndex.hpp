@@ -1,3 +1,5 @@
+#pragma once
+
 #include <unordered_map>
 #include <string>
 #include <iostream>
@@ -6,22 +8,22 @@
 #include <map>
 #include <algorithm>
 #include <optional>
-#include <List>
+#include <list>
+#include <filesystem>
 
 
-class Index {
+#include <indexEntry.hpp>
+#include <fieldIndex/baseFieldIndex.hpp>
+#include <fieldIndex/uniqueFieldIndex.hpp>
+
+namespace fs = std::filesystem;
+
+class StorageIndex {
 public:
-	struct IndexEntry {
-		uint32_t offset;
-		uint32_t size;
 
-		IndexEntry() : offset(0), size(0) {}
 
-		IndexEntry(uint32_t offset, uint32_t size) : offset(offset), size(size) {}
-	};
-
-	Index(const std::string& filename);
-	~Index();
+	StorageIndex(const std::string& filename);
+	~StorageIndex();
 
 	bool has(uint64_t id);
 
@@ -34,6 +36,8 @@ public:
 	std::optional<std::pair<uint32_t, uint32_t>> getBestFitGap(uint32_t size);
 	void eraseGap(uint32_t size);
 	void updateGap(uint32_t size, uint32_t offset);
+
+	bool addFieldIndex(const std::string& fieldName, bool unique);
 
 
 private:
@@ -49,7 +53,10 @@ private:
 	std::string m_filename;
 	std::fstream m_indexStream;
 
+	std::unordered_map<std::string, std::vector<std::unique_ptr<BaseFieldIndex>>> m_fieldIndicesMap;
+
 	void loadIndex();
+	void loadFieldIndices();
 	//void createIndex();
 	
 
