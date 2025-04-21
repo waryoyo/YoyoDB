@@ -14,7 +14,7 @@ using json = nlohmann::json;
 class Storage
 {
 public:
-	Storage(const std::string& filename);
+	Storage(const std::string& filename, StorageIndex& index);
 	~Storage();
 
 	std::vector<uint64_t> getAllJObjectIds();
@@ -24,13 +24,11 @@ public:
 	bool updateJObject(uint64_t id, const nlohmann::json& jObject);
 	bool deleteJObject(uint64_t id);
 
-	bool createFIndex(const std::string& field, bool unique);
-
 	//std::vector<nlohmann::json> readAll();
 
 private:
 	std::string m_filename;
 	std::fstream m_storageStream;
-	StorageIndex m_index;
+	StorageIndex& m_index;
 
 };

@@ -37,9 +37,6 @@ public:
 	void eraseGap(uint32_t size);
 	void updateGap(uint32_t size, uint32_t offset);
 
-	bool addFieldIndex(const std::string& fieldName, bool unique);
-
-
 private:
 	static const int recordSize = sizeof(uint64_t) + sizeof(uint32_t);
 	
@@ -53,12 +50,6 @@ private:
 	std::string m_filename;
 	std::fstream m_indexStream;
 
-	std::unordered_map<std::string, std::vector<std::unique_ptr<BaseFieldIndex>>> m_fieldIndicesMap;
-
 	void loadIndex();
-	void loadFieldIndices();
-	//void createIndex();
-	
-
 
 };

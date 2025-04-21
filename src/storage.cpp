@@ -2,8 +2,8 @@
 
 // TODO: update gap checking to account for json object being smallest possible size which is 2.
 
-Storage::Storage(const std::string& filename)
-	: m_filename(filename + ".jsonl"), m_index(filename) {
+Storage::Storage(const std::string& filename, StorageIndex& index)
+	: m_filename(filename + ".jsonl"), m_index(index) {
 	std::ofstream(m_filename, std::ios::app | std::ios::binary).close();
 	m_storageStream.open(m_filename, std::ios::binary | std::ios::ate | std::ios::out | std::ios::in);
 }
@@ -71,11 +71,5 @@ bool Storage::updateJObject(uint64_t id, const nlohmann::json& jObject)
 bool Storage::deleteJObject(uint64_t id)
 {
 	m_index.removeEntry(id);
-	return true;
-}
-
-bool Storage::createFIndex(const std::string& field, bool unique)
-{
-	m_index.addFieldIndex(field, unique);
 	return true;
 }

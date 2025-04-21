@@ -15,10 +15,10 @@
 using json = nlohmann::json;
 
 
-class UniqueFieldIndex : public BaseFieldIndex {
+class FieldIndex : public BaseFieldIndex {
 public:
-	UniqueFieldIndex(const std::string& fieldName, const std::string& filename);
-	~UniqueFieldIndex() override = default;
+	FieldIndex(const std::string& fieldName, const std::string& filename);
+	~FieldIndex() override = default;
 
 	std::vector<uint64_t> get(const json& entry) const override;
 	bool has(const json& entry) const override;
@@ -31,6 +31,6 @@ public:
 
 
 private:
-	std::unordered_map<json, uint64_t> m_indexMap;
+	std::unordered_multimap<json, uint64_t> m_indexMap;
 	void loadIndex();
 };

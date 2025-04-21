@@ -9,7 +9,6 @@ StorageIndex::StorageIndex(const std::string& filename)
 		throw std::runtime_error("Error opening index file: " + m_filename);
 	}
 	loadIndex();
-	loadFieldIndices();
 }
 
 StorageIndex::~StorageIndex()
@@ -122,21 +121,6 @@ void StorageIndex::updateGap(uint32_t size, uint32_t offset)
 	m_emptyGaps.insert({ size, offset });
 }
 
-bool StorageIndex::addFieldIndex(const std::string& fieldName, bool unique)
-{
-	if (!fs::exists("fields") || !fs::is_directory("fields")) {
-		fs::create_directory("fields");
-	}
-
-	auto index = std::make_unique<UniqueFieldIndex>(fieldName, "fields/" + fieldName + ".bin");
-	for (auto item : listAllIDs()) {
-		index->add(getEntry(item), item);
-	}
-
-	m_fieldIndicesMap[fieldName].push_back(std::move(index));
-	return true;
-}
-
 void StorageIndex::loadIndex() {
 
 	m_indexStream.seekg(0, std::ios::end);
@@ -187,18 +171,4 @@ void StorageIndex::loadIndex() {
 	}
 
 }
-
-void StorageIndex::loadFieldIndices()
-{
-	if (fs::exists("fields") && fs::is_directory("fields")) {
-		for (const auto& entry : fs::directory_iterator("fields")) {
-			std::string pathName = entry.path().string();
-			std::string fieldName = pathName.substr(0, pathName.find("."));
-			auto index = std::make_unique<UniqueFieldIndex>(fieldName, pathName);
-			m_fieldIndicesMap[entry.path().string()].push_back(std::move(index));
-		}
-	}
-
-}
-
 

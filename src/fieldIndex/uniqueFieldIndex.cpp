@@ -7,87 +7,67 @@ UniqueFieldIndex::UniqueFieldIndex(const std::string& fieldName, const std::stri
 }
 
 
-bool UniqueFieldIndex::has(const IndexEntry& entry) const
+std::vector<uint64_t> UniqueFieldIndex::get(const json& entry) const
+{
+	if (!has(entry))
+		return {};
+
+	return { m_indexMap.at(entry) };
+}
+
+bool UniqueFieldIndex::has(const json& entry) const
 {
 	return m_indexMap.contains(entry);
 }
 
-void UniqueFieldIndex::add(const IndexEntry& entry, uint64_t id)
+void UniqueFieldIndex::add(const json& entry, uint64_t id)
 {
 	if (has(entry))
 		return;
 
-	IndexEntry entryCopy = entry;
-	if (m_freeSlots.size() == 0) {
-		m_indexStream.seekg(0, std::ios::end);
-		int length = m_indexStream.tellg();
-
-		if (length > 0)
-			m_indexStream.seekp(length);
-		else
-			m_indexStream.seekp(0, std::ios::end);
-
-
-		m_indexStream.write(reinterpret_cast<char*>(&id), sizeof(id));
-		m_indexStream.write(reinterpret_cast<char*>(&entryCopy.offset), sizeof(entry.offset));
-		m_indexStream.write(reinterpret_cast<char*>(&entryCopy.size), sizeof(entry.size));
-
-		m_indexLocationsMap[id] = length;
-	}
-	else {
-		uint32_t front = m_freeSlots.back();
-		m_freeSlots.pop_back();
-
-		uint32_t freeOffsetsSize = m_freeSlots.size();
-
-		m_indexStream.seekp(front * (sizeof(uint64_t) + sizeof(uint32_t)) + sizeof(uint32_t));
-		m_indexStream.write(reinterpret_cast<char*>(&id), sizeof(id));
-		m_indexStream.write(reinterpret_cast<char*>(&entryCopy.offset), sizeof(entry.offset));
-		m_indexStream.write(reinterpret_cast<char*>(&entryCopy.size), sizeof(entry.size));
-
-		m_indexLocationsMap[id] = front;
-	}
+	json j = { {"key", entry}, {"id", id} };
+	m_indexStream << j.dump() << '\n';
+	m_indexStream.flush();
 
 	m_indexMap[entry] = id;
 }
-void UniqueFieldIndex::remove(const IndexEntry& entry)
+void UniqueFieldIndex::remove(const json& entry)
 {
 	if (!has(entry))
 		return;
 
-	uint64_t zero = 0;
-
-	auto id = m_indexMap[entry];
-
-	m_indexStream.seekp(m_indexLocationsMap[id] * (sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint32_t)));
-	m_indexStream.write(reinterpret_cast<char*>(&zero), sizeof(uint64_t));
-	m_indexStream.write(reinterpret_cast<char*>(&zero), sizeof(uint32_t));
-	m_indexStream.write(reinterpret_cast<char*>(&zero), sizeof(uint32_t));
-
-	m_indexMap.erase(entry);
-	m_freeSlots.push_back(m_indexLocationsMap[id]);
-	m_indexLocationsMap.erase(id);
-
-
-	m_indexMap.erase(entry);
+	json tombstone = { {"key", entry}, {"id", nullptr} };
+	m_indexStream << tombstone.dump() << '\n';
+	m_indexStream.flush();
 }
-void UniqueFieldIndex::remove(const IndexEntry& entry, uint64_t id)
+void UniqueFieldIndex::remove(const json& entry, uint64_t id)
 {
 	remove(entry);
 }
 
-void UniqueFieldIndex::update(const IndexEntry& entry, uint64_t id)
+void UniqueFieldIndex::update(const json& entry, uint64_t id)
 {
 	if (!has(entry))
 		return;
 
-	IndexEntry entryCopy = entry;
+	add(entry, id);
+}
 
-	m_indexStream.seekp(m_indexLocationsMap[id] * (sizeof(uint64_t) + sizeof(uint32_t)) + sizeof(uint64_t));
-	m_indexStream.write(reinterpret_cast<char*>(&entryCopy.offset), sizeof(entry.offset));
-	m_indexStream.write(reinterpret_cast<char*>(&entryCopy.size), sizeof(entry.size));
+void UniqueFieldIndex::compact()
+{
+	std::ofstream out(m_filename + ".tmp");
 
-	m_indexMap[entry] = id;
+	for (const auto& [key, id] : m_indexMap) {
+		json j = { {"key", key}, {"id", id} };
+		out << j.dump() << '\n';
+	}
+
+	out.close();
+	std::remove(m_filename.c_str());
+	std::rename((m_filename + ".tmp").c_str(), m_filename.c_str());
+
+	if (m_indexStream.is_open()) m_indexStream.close();
+	m_indexStream.open(m_filename, std::ios::app);
 }
 
 void UniqueFieldIndex::loadIndex()
@@ -99,23 +79,20 @@ void UniqueFieldIndex::loadIndex()
 		return;
 	}
 
+	m_isNewIndex = false;
 	m_indexStream.seekg(0);
 
-	uint32_t i = 0;
-	while (true) {
-		uint64_t id = 0;
-		auto entry = IndexEntry();
+	std::string line;
+	while (std::getline(m_indexStream, line)) {
+		if (line.empty()) continue;
 
-		m_indexStream.read(reinterpret_cast<char*>(&id), sizeof(uint64_t));
-		m_indexStream.read(reinterpret_cast<char*>(&entry.offset), sizeof(uint32_t));
-		m_indexStream.read(reinterpret_cast<char*>(&entry.size), sizeof(uint32_t));
-
-		if (m_indexStream.eof() || m_indexStream.fail()) break;
-
-		m_indexMap[entry] = id;
-		m_indexLocationsMap[id] = i;
-
-		i++;
+		json j = json::parse(line);
+		if (j.contains("key") && j.contains("id") && !j["id"].is_null()) {
+			m_indexMap[j["key"]] = j["id"];
+		}
+		else if (j.contains("key") && j["id"].is_null()) {
+			m_indexMap.erase(j["key"]);
+		}
 	}
 
 	m_indexStream.clear();

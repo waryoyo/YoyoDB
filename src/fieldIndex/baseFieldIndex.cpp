@@ -19,3 +19,8 @@ bool BaseFieldIndex::isUnique() const
 {
 	return m_unique;
 }
+
+bool BaseFieldIndex::isNew() const
+{
+	return m_isNewIndex;
+}

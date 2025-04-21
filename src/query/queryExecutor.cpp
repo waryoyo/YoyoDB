@@ -3,8 +3,15 @@
 std::vector<json> QueryExecutor::execute(const QueryNode* root, Database& database)
 {
 	std::vector<json> results;
-	auto documents = database.readAllDocuments();
 
+	if (root && root->type == NodeType::CONDITIONAL) {
+		const ConditionalNode* conditional = dynamic_cast<const ConditionalNode*>(root);
+		if (database.hasIndex(conditional->field) && conditional->conditionType == ConditionalNodeType::EQUAL) {
+			return database.readFromIndex(conditional->field, conditional->value);
+		}
+	}
+
+	auto documents = database.readAllDocuments();
 	for (const auto& document : documents) {
 		if (root && evaluateNode(root, document)) {
 			results.push_back(document);

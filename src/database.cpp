@@ -1,9 +1,10 @@
 #include "database.hpp"
 
 Database::Database(const std::string& filename)
-	: m_filename(filename + ".txt"), m_storage(filename) {
+	: m_filename(filename + ".txt"), m_index(filename), m_storage(filename, m_index) {
 	std::ofstream(m_filename, std::ios::app | std::ios::binary).close();
 	loadCounter();
+	loadFieldIndices();
 }
 
 std::vector<uint64_t> Database::getAllIds()
@@ -31,12 +32,10 @@ nlohmann::json Database::readDocument(uint64_t id)
 		m_cacheManager.put(jObject["id"], jObject);
 
 	return jObject;
-
 }
 
 std::vector<nlohmann::json> Database::readAllDocuments()
 {
-
 	auto idsList = m_storage.getAllJObjectIds();
 	std::vector<nlohmann::json> finalResult;
 	finalResult.reserve(idsList.size());
@@ -77,12 +76,24 @@ bool Database::deleteDocument(uint64_t id)
 
 bool Database::createFieldIndex(const std::string& fieldName, bool unique)
 {
-	return m_storage.createFIndex(fieldName, unique);
+	if (hasIndex(fieldName))
+		return false;
+
+	if (!fs::exists("fields") || !fs::is_directory("fields")) {
+		fs::create_directory("fields");
+	}
+
+	auto idsList = getAllIds();
+	auto index = std::make_unique<UniqueFieldIndex>(fieldName, fieldName + ".bin");
+	populateFieldIndex(index.get(), idsList);
+
+	m_fieldIndicesMap[fieldName] = std::move(index);
+	return true;
 }
 
-bool Database::hasIndex(const std::string fieldName)
+bool Database::hasIndex(const std::string& fieldName)
 {
-	return false;
+	return m_fieldIndicesMap.contains(fieldName);
 }
 
 uint64_t Database::generateId()
@@ -92,9 +103,24 @@ uint64_t Database::generateId()
 	return m_counter;
 }
 
-bool Database::readFromIndex(const std::string& fieldName, const nlohmann::json& value)
+std::vector<nlohmann::json> Database::readFromIndex(const std::string& fieldName, const nlohmann::json& value)
 {
-	return false;
+	std::vector<json> results;
+
+	if (!hasIndex(fieldName))
+		return results;
+
+	auto& index = m_fieldIndicesMap[fieldName];
+	if (index->has(value)) {
+		auto ids = index->get(value);
+		for (const auto& id : ids) {
+			auto doc = readDocument(id);
+
+			if (!doc.is_null()) 
+				results.push_back(doc);
+			
+		}
+	}
 }
 
 bool Database::loadCounter()
@@ -112,4 +138,33 @@ bool Database::saveCounter() const
 	file << m_counter;
 	file.close();
 	return true;
+}
+
+void Database::loadFieldIndices()
+{
+	if (fs::exists("fields") && fs::is_directory("fields")) {
+		for (const auto& entry : fs::directory_iterator("fields")) {
+			std::string pathName = entry.path().filename().string();
+			std::string fieldName = pathName.substr(0, pathName.find("."));
+			createFieldIndex(fieldName, true);
+			/*auto index = std::make_unique<UniqueFieldIndex>(fieldName, pathName);
+
+			if (index->isNew())
+				populateFieldIndex(index.get(), idsList);
+			
+
+			m_fieldIndicesMap[entry.path().string()] = std::move(index);*/
+		}
+	}
+
+}
+
+void Database::populateFieldIndex(BaseFieldIndex* index, std::vector<size_t> ids)
+{
+	for (const auto& id : ids) {
+		auto doc = readDocument(id);
+		if (!doc.contains(index->getFieldName()))
+			continue;
+		index->add(doc[index->getFieldName()], id);
+	}
 }

@@ -19,24 +19,27 @@ public:
 	virtual ~BaseFieldIndex() = default;
 
 	std::string getFieldName() const;
+
 	bool isUnique() const;
+	bool isNew() const;
 
 	virtual void loadIndex() = 0;
 
-	virtual bool has(const IndexEntry& entry) const = 0;
-	virtual void add(const IndexEntry& entry, uint64_t id) = 0;
-	virtual void update(const IndexEntry& entry, uint64_t id) = 0;
-	virtual void remove(const IndexEntry& entry) = 0;
-	virtual void remove(const IndexEntry& entry, uint64_t id) = 0;
+	virtual std::vector<uint64_t> get(const json& entry) const = 0;
+	virtual bool has(const json& entry) const = 0;
+	virtual void add(const json& entry, uint64_t id) = 0;
+	virtual void update(const json& entry, uint64_t id) = 0;
+	virtual void remove(const json& entry) = 0;
+	virtual void remove(const json& entry, uint64_t id) = 0;
 
+	virtual void compact() = 0;
 
 
 protected:
 	std::string m_fieldName;
 	bool m_unique;
+	bool m_isNewIndex = true;
 
-	std::unordered_map<uint64_t, uint32_t> m_indexLocationsMap; // <id, offset>
-	std::list<uint32_t> m_freeSlots;
 	std::string m_filename;
 	std::fstream m_indexStream;
 };

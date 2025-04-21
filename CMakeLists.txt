@@ -22,7 +22,7 @@ project ("YoyoDB")
 
 # Add source to this project's executable.
 include_directories(YoyoDB PUBLIC include)
-add_executable (YoyoDB "YoyoDB.cpp" "YoyoDB.h" "src/database.cpp" "src/storage.cpp" "src/cacheManager.cpp" "src/storageIndex.cpp" "src/query/condition.cpp" "src/query/queryParser.cpp" "src/query/queryExecutor.cpp" "src/fieldIndex/uniqueFieldIndex.cpp" "src/fieldIndex/baseFieldIndex.cpp")
+add_executable (YoyoDB "YoyoDB.cpp" "YoyoDB.h" "src/database.cpp" "src/storage.cpp" "src/cacheManager.cpp" "src/storageIndex.cpp" "src/query/condition.cpp" "src/query/queryParser.cpp" "src/query/queryExecutor.cpp" "src/fieldIndex/uniqueFieldIndex.cpp" "src/fieldIndex/baseFieldIndex.cpp" "src/fieldIndex/fieldIndex.cpp")
 target_link_libraries(YoyoDB nlohmann_json::nlohmann_json)
 
 
